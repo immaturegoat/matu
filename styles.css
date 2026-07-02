@@ -1,0 +1,69 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "JetBrains Mono", monospace;
+    font-optical-sizing: auto;
+    font-style: normal;
+    background-color: black;
+    display: flex;
+}
+
+.sidebar {
+    height: 100vh;
+    width: 15%;
+}
+
+#hierarchy {
+    background-color: #181820;
+    color: #C8C8D0;
+    height: 100%;
+}
+
+#center {
+    width: 70%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#toolbar {
+    height: 10%;
+    background-color: #1A1A1F;
+}
+
+#viewport {
+    height: 60%;
+    background-color: #101014;
+    position: relative;
+}
+
+#matu-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+#assets {
+    position: relative;
+    color: #DCDCE3;
+    height: 30%;
+    background-color: #15151A;
+    padding: 10px;
+}
+
+#inspector {
+    width: 15%;
+    height: 100vh;
+    background-color: #202028;
+}
+
+h1 {
+    color: #FFFFFF;
+    font-size: 1.1rem;
+    margin: 0;
+    padding: 10px;
+    border-bottom: 2px solid #0791b7;
+}
