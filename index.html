@@ -13,7 +13,17 @@
 </head>
 <body>
     <div id="hierarchy" class="sidebar panel">
-        <h1>Hierarchy</h1>
+        <div class="panel-header">
+            <h1>Hierarchy</h1>
+            <button id="add-hierarchy" class="add-button">+</button>
+        </div>
+        <div id="hierarchy-dropdown-content" class="dropdown">
+            <button>Object</button>
+            <button>Sprite</button>
+            <button>Audio</button>
+            <button>hi</button>
+        </div>
+        <div id="hierarchy-content"></div>
     </div>
 
     <div id="center">
@@ -25,8 +35,10 @@
         </div>
 
         <div id="assets" class="panel">
-            <h1>Assets</h1>
-            <button id="add-assets">+</button>
+            <div class="panel-header">
+                <h1>Assets</h1>
+                <button id="add-assets" class="add-button">+</button>
+            </div>
             <input type="file" id="asset-input" multiple>
             <div id="asset-list"></div>
         </div>
@@ -34,9 +46,9 @@
     </div>
 
     <div id="inspector" class="sidebar panel">
-        <div id="inspector-header">
+        <div id="inspector-header" class="panel-header">
             <h1>Inspector</h1>
-            <button id="close-inspector">x</button>
+            <button id="close-inspector" class="close-button">x</button>
         </div>
 
         <div id="inspector-content">

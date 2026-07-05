@@ -1,4 +1,7 @@
 // this is honestly getting very messy and it's getting hard to keep track of things lol, i should've split this into multiple files
+const add_hierarchy = document.getElementById('add-hierarchy');
+const hierarchy_dropdown_content = document.getElementById('hierarchy-dropdown-content');
+let dropdown_open = false;
 
 const canvas = document.getElementById('matu-canvas');
 const context = canvas.getContext('2d');
@@ -9,10 +12,18 @@ const preview_header = document.getElementById('preview-header');
 const preview_file = document.getElementById('preview-file');
 const close_preview = document.getElementById('close-preview');
 
+const preview_windows = new Map();
+let max_z = 100;
+let preview_index = 0;
+
 const add_asset = document.getElementById('add-assets');
 const asset_input = document.getElementById('asset-input');
 const asset_list = document.getElementById('asset-list');
 const asset_select = document.getElementById('asset-select');
+
+let asset_names = new Set();
+let asset_files = new Map();
+let asset_tiles = new Map();
 
 const inspector_thumb = document.getElementById('inspector-thumb');
 const inspector_filename = document.getElementById('inspector-filename');
@@ -21,13 +32,26 @@ const inspector_rename = document.getElementById('inspector-rename');
 const inspector_save = document.getElementById('inspector-save');
 const close_inspector = document.getElementById('close-inspector');
 
-const preview_windows = new Map();
-let max_z = 100;
-let preview_index = 0;
+// hierarchy dropdown
+add_hierarchy.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (dropdown_open) {
+        hierarchy_dropdown_content.classList.remove('open');
+        dropdown_open = false;
+        return;
+    }
+    hierarchy_dropdown_content.classList.add('open');
+    dropdown_open = true;
+});
 
-let asset_names = new Set();
-let asset_files = new Map();
-let asset_tiles = new Map();
+document.addEventListener('click', () => {
+    hierarchy_dropdown_content.classList.remove('open');
+    dropdown_open = false;
+});
+
+hierarchy_dropdown_content.addEventListener('click', () => {
+    e.stopPropagation();
+})
 
 // draw viewport grid
 function resizeCanvas() {
@@ -162,10 +186,10 @@ function openPreview(name) {
     preview.className = 'preview-window';
 
     preview.innerHTML = `
-        <div class="preview-window-header">
+        <div class="preview-window-header panel-header">
             <h1 class="preview-header">Preview</h1>
             <p class="preview-file">${shortenName(name)}</p>
-            <button class="close-preview">x</button>
+            <button class="close-preview close-button">x</button>
         </div>
         <img class="preview-image">
     `;

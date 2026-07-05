@@ -2,6 +2,7 @@
     --highlight-color: #074a5d;
     --hierarchy-bg: #181820;
     --hierarchy-font: #c8c8d0;
+    --dropdown-bg: #202630;
     --toolbar-bg: #1a1a1f;
     --toolbar-font: #e6e9ee;
     --viewport-bg: #101014;
@@ -44,7 +45,6 @@ h1 {
     color: var(--white);
     font-size: 1.1rem;
     margin: 0;
-    padding: 10px;
     border-bottom: 2px solid var(--highlight-color);
 }
 
@@ -53,10 +53,92 @@ h1 {
     width: 15%;
 }
 
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 2px solid var(--highlight-color);
+}
+
+.add-button {
+    position: static;
+    top: 50%;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--border-radius);
+    border: 2px solid var(--highlight-color);
+    background-color: transparent;
+    font-size: 18px;
+}
+
+.close-button {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--highlight-color);
+    border-radius: var(--border-radius);
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.panel-header h1 {
+    margin: 0;
+    border: none;
+}
+
+.dropdown {
+    position: absolute;
+    top: 45px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    opacity: 0;
+    transform: translateY(-10px);
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.dropdown.open {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+
 #hierarchy {
+    position: relative;
     background-color: var(--hierarchy-bg);
     color: var(--hierarchy-font);
     height: 100%;
+}
+
+#add-hierarchy {
+    color: var(--hierarchy-font);
+    transition: all 0.2s ease;
+}
+
+#add-hierarchy:hover {
+    background-color: var(--highlight-color);
+    color: var(--hierarchy-bg);
+}
+
+#hierarchy-dropdown-content button {
+    color: var(--hierarchy-font);
+    background-color: var(--dropdown-bg);
+    border: 2px solid var(--highlight-color);
+    border-radius: var(--border-radius);
+    margin-top: 5px;
+    padding: 5px 10px 5px 10px;
+    font-family: "JetBrains Mono", monospace;
+    font-optical-sizing: auto;
+    font-style: normal;
 }
 
 #center {
@@ -110,10 +192,10 @@ h1 {
 
 .preview-window-header {
     cursor: move;
-    display: flex;
+    /* display: flex;
     border-bottom: 2px solid var(--highlight-color);
     align-items: center;
-    gap: 10px;
+    gap: 10px; */
 }
 
 .preview-header {
@@ -125,20 +207,8 @@ h1 {
 }
 
 .close-preview {
-    width: 28px;
-    height: 28px;
-    border: 2px solid var(--highlight-color);
-    border-radius: var(--border-radius);
-    background-color: transparent;
-    color: white;
-    cursor: pointer;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: var(--preview-font);
     transition: all 0.2s ease;
-    margin-left: auto;
-    margin-right: 10px;
 }
 
 .close-preview:hover {
@@ -155,17 +225,7 @@ h1 {
 }
 
 #add-assets {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 28px;
-    height: 28px;
-    border-radius: var(--border-radius);
-    border: 2px solid var(--highlight-color);
-    background-color: transparent;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
+    color: var(--assets-font);
     transition: all 0.2s ease;
 }
 
@@ -276,23 +336,17 @@ h1 {
     flex-direction: column;
 }
 
-#inspector-header {
+/* #inspector-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px;
     border-bottom: 2px solid var(--highlight-color);
-}
+} */
 
 #close-inspector {
-    width: 28px;
-    height: 28px;
-    border: 2px solid var(--highlight-color);
-    border-radius: var(--border-radius);
-    background-color: transparent;
-    color: white;
+    color: var(--inspector-font);
     cursor: pointer;
-    font-size: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
