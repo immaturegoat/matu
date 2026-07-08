@@ -88,7 +88,7 @@ hierarchy_dropdown_content.querySelectorAll('button').forEach(button => {
     if (!type) return;
 
     button.addEventListener('click', () => {
-        addNodeFromToolbar(type);
+        addNode(type);
         hierarchy_dropdown_content.classList.remove('open');
         dropdown_open = false;
     });

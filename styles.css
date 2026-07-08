@@ -317,15 +317,16 @@ h1 {
     margin-top: 0;
 }
 
-#node-sprite-asset {
+#node-sprite-asset, #node-object-sprite, #node-audio-asset {
     font-family: "JetBrains Mono", monospace;
     font-optical-sizing: auto;
     font-style: normal;
     text-overflow: ellipsis;
     max-width: 50%;
+    margin-top: 5px;
 }
 
-#node-sprite-visible, #node-audio-loop, #dimensions-lock {
+#node-sprite-visible, #node-audio-loop, #dimensions-lock, #proportion-lock {
   -webkit-appearance: none;
   appearance: none;
   width: 20px;
@@ -340,7 +341,7 @@ h1 {
   cursor: pointer;
 }
 
-#node-sprite-visible::before, #node-audio-loop::before, #dimensions-lock::before {
+#node-sprite-visible::before, #node-audio-loop::before, #dimensions-lock::before, #proportion-lock::before {
   content: "";
   width: 10px;
   height: 10px;
@@ -349,7 +350,7 @@ h1 {
   background-color: var(--highlight-color);
 }
 
-#node-sprite-visible:checked::before, #node-audio-loop:checked::before, #dimensions-lock:checked::before {
+#node-sprite-visible:checked::before, #node-audio-loop:checked::before, #dimensions-lock:checked::before, #proportion-lock:checked::before {
   transform: scale(1);
 }
 

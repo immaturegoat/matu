@@ -21,6 +21,9 @@ const hierarchy_roots = [];
 
 let selected_node_id = null;
 
+let previous_width = 100;
+let previous_height = 100;
+
 const hierarchy_content = document.getElementById('hierarchy-content');
 
 const node_select_panel = document.getElementById('node-select');
@@ -33,7 +36,9 @@ const node_y = document.getElementById('node-y');
 const node_width = document.getElementById('node-width');
 const node_height = document.getElementById('node-height');
 const node_dimension_lock = document.getElementById('dimensions-lock');
+const node_proportion_lock = document.getElementById('proportion-lock');
 const node_rotation = document.getElementById('node-rotation');
+const node_object_sprite = document.getElementById('node-object-sprite')
 
 const node_sprite_fields = document.getElementById('node-sprite-fields');
 const node_sprite_asset = document.getElementById('node-sprite-asset');
@@ -89,7 +94,10 @@ function createNode(type, parent_id = null, name = null) {
 
     if (type === 'object') {
         node.transform = {x: 0, y: 0, width: 100, height: 100, rotation: 0};
-        node.dimension_lock = true;
+        node.dimension_lock = false;
+        node.selected_sprite = null;
+        node.aspect_ratio = 1;
+        node.proportion_lock = false;
     } else if (type === 'sprite') {
         node.asset_name = null;
         node.visible = true;
@@ -184,8 +192,21 @@ function getRenderables() {
     const results = [];
     for (const node of hierarchy_nodes.values()) {
         if (node.type !== 'object') continue;
-        const sprite_node = node.child_ids.map(cid => hierarchy_nodes.get(cid)).find(child => child && child.type === 'sprite' && child.visible && child.asset_name);
-        results.push({object_node: node, sprite_node: sprite_node || null});
+        let sprite_node = null;
+
+        if (node.selected_sprite) {
+            const candidate = hierarchy_nodes.get(node.selected_sprite);
+
+            if (candidate && candidate.type === 'sprite' && candidate.visible && candidate.asset_name) {
+                sprite_node = candidate;
+            }
+        }
+
+        if (!sprite_node) {
+            sprite_node = node.child_ids.map(id => hierarchy_nodes.get(id)).find(child => child && child.type === 'sprite' && child.visible && child.asset_name);
+        }
+
+        results.push({object_node: node, sprite_node});
     }
 
     return results;
@@ -278,7 +299,7 @@ function getSelected() {
 }
 
 function assetOptions(select_el, mime_prefix, current_asset_name) {
-    select_el.innerHTML = '<option value="">-none-</option>';
+    select_el.innerHTML = '<option value="">None</option>';
 
     for (const [name, file] of asset_files.entries()) {
         if (!file.type.startsWith(mime_prefix)) continue;
@@ -289,6 +310,54 @@ function assetOptions(select_el, mime_prefix, current_asset_name) {
     }
 
     select_el.value = current_asset_name || '';
+}
+
+function getSprite(object) {
+    if (object.selected_sprite) {
+        const sprite = hierarchy_nodes.get(object.selected_sprite);
+        if (sprite) return sprite;
+    }
+
+    return object.child_ids.map(id => hierarchy_nodes.get(id)).find(node => node && node.type === 'sprite');
+}
+
+function toAssetSize(object) {
+    const sprite = getSprite(object);
+    if (!sprite || !sprite.asset_name) return;
+
+    const image = getAssetImage(sprite.asset_name);
+    if (!image || !image.complete) return;
+
+    object.transform.width = image.naturalWidth;
+    object.transform.height = image.naturalHeight;
+
+    object.aspect_ratio = image.naturalWidth / image.naturalHeight;
+
+    node_width.value = object.transform.width;
+    node_height.value = object.transform.height;
+
+    previous_width = object.transform.width;
+    previous_height = object.transform.height;
+}
+
+function spriteOptions(object) {
+    node_object_sprite.innerHTML = '';
+
+    const sprites = object.child_ids.map(id => hierarchy_nodes.get(id)).filter(node => node && node.type === 'sprite');
+
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'Auto';
+    node_object_sprite.appendChild(none);
+
+    for (const sprite of sprites) {
+        const option = document.createElement('option');
+        option.value = sprite.id;
+        option.textContent = sprite.name;
+        node_object_sprite.appendChild(option);
+    }
+
+    node_object_sprite.value = object.selected_sprite ?? '';
 }
 
 function openNodeInspector(node) {
@@ -309,12 +378,22 @@ function openNodeInspector(node) {
     node_script_fields.style.display = node.type === 'script' ? 'flex' : 'none';
 
     if (node.type === 'object') {
+        node.aspect_ratio = node.transform.width / node.transform.height;
+
         node_x.value = node.transform.x;
         node_y.value = node.transform.y;
         node_width.value = node.transform.width;
         node_height.value = node.transform.height;
-        dimension_lock.checked = node.dimension_lock;
+
+        node_dimension_lock.checked = node.dimension_lock;
+        node_proportion_lock.checked = node.proportion_lock;
+
         node_rotation.value = (node.transform.rotation * 180 / Math.PI).toFixed(1);
+
+        previous_width = node.transform.width;
+        previous_height = node.transform.height;
+
+        spriteOptions(node);
     } else if (node.type === 'sprite') {
         assetOptions(node_sprite_asset, 'image/', node.asset_name);
         node_sprite_visible.checked = node.visible;
@@ -337,22 +416,87 @@ function closeNodeInspector() {
     close_inspector_button.classList.remove('show');
 }
 
+function transformObject(changed) {
+    const node = getSelected();
+    if (!node || node.type !== 'object') return;
+
+    node.transform.x = Number(node_x.value);
+    node.transform.y = Number(node_y.value);
+
+    if (changed === 'width' && node_width.value === '') return;
+    if (changed === 'height' && node_height.value === '') return;
+
+    let width = node_width.valueAsNumber;
+    let height = node_height.valueAsNumber;
+
+    if (Number.isNaN(width) || Number.isNaN(height)) {
+        return;
+    }
+
+    if (node.dimension_lock) {
+        if (changed === 'width') {
+            height = width / node.aspect_ratio;
+            node_height.value = height;
+        } else if (changed === 'height') {
+            width = height * node.aspect_ratio;
+            node_width.value = width;
+        }
+    } else {
+        node.aspect_ratio = width / height;
+    }
+
+    node.transform.width = width;
+    node.transform.height = height;
+
+    previous_width = width;
+    previous_height = height;
+}
+
 node_name_input.addEventListener('input', () => {
     const node = getSelected();
     if (!node) return;
+
     node.name = node_name_input.value;
     renderUI();
+
+    if (node.type === 'sprite') {
+        const parent = getNode(node.parent_id);
+        if (parent?.type === 'object') {
+            assetOptions(parent);
+        }
+    }
 });
 
-[node_x, node_y, node_width, node_height].forEach(input => {
-    input.addEventListener('input', () => {
-        const node = getSelected();
-        if (!node || node.type !== 'object') return;
-        node.transform.x = Number(node_x.value);
-        node.transform.y = Number(node_y.value);
-        node.transform.width = Number(node_width.value);
-        node.transform.height = Number(node_height.value);
-    });
+node_x.addEventListener('input', () => transformObject());
+node_y.addEventListener('input', () => transformObject());
+
+node_width.addEventListener('input', () => transformObject('width'));
+node_height.addEventListener('input', () => transformObject('height'));
+
+node_dimension_lock.addEventListener('change', () => {
+    const node = getSelected();
+    if (!node || node.type !== 'object') return;
+
+    node.dimension_lock = node_dimension_lock.checked;
+
+    if (!node.dimension_lock) {
+        node.proportion_lock = false;
+        node_proportion_lock.checked = false;
+    }
+});
+
+node_proportion_lock.addEventListener('change', () => {
+    const node = getSelected();
+    if (!node || node.type !== 'object') return;
+    
+    node.proportion_lock = node_proportion_lock.checked;
+    console.log(node.proportion_lock)
+    if (node.proportion_lock) {
+        node.dimension_lock = true;
+        node_dimension_lock.checked = true;
+
+        toAssetSize(node);
+    }
 });
 
 node_rotation.addEventListener('input', () => {
@@ -360,6 +504,12 @@ node_rotation.addEventListener('input', () => {
     if (!node || node.type !== 'object') return;
     node.transform.rotation = Number(node_rotation.value) * Math.PI / 180;
 });
+
+node_object_sprite.addEventListener('change', () => {
+    const node = getSelected();
+    if (!node || node.type !== 'object') return;
+    node.selected_sprite = node_object_sprite.value || null;
+})
 
 node_sprite_asset.addEventListener('change', () => {
     const node = getSelected();
@@ -406,7 +556,11 @@ node_script_code.addEventListener('input', () => {
 node_delete_button.addEventListener('click', () => {
     const node = getSelected();
     if (!node) return;
+    const parent = node.parent_id ? getNode(node.parent_id) : null;
     deleteNode(node.id);
+    if (parent?.type === 'object') {
+        spriteOptions(parent);
+    }
     closeNodeInspector();
     renderUI();
 });
@@ -419,24 +573,45 @@ close_inspector_button.addEventListener('click', () => {
 
 renderUI();
 
-function addNodeFromToolbar(type) {
+function addNode(type) {
     const selected = getSelected();
 
     if (selected && childAcceptable(selected.type, type)) {
         const node = createNode(type, selected.id);
-        if (node) {selectNode(node.id);}
+        if (node) {
+            selectNode(node.id);
+
+            const parent = node.parent_id ?getNode(node.parent_id) : null;
+            if (parent?.type === 'object') {
+                spriteOptions(parent);
+            }
+        }
         return node;
     }
 
     if (selected && selected.parent_id && childAcceptable(getNode(selected.parent_id).type, type)) {
         const node = createNode(type, selected.parent_id);
-        if (node) {selectNode(node.id);}
+        if (node) {
+            selectNode(node.id);
+
+            const parent = node.parent_id ?getNode(node.parent_id) : null;
+            if (parent?.type === 'object') {
+                spriteOptions(parent);
+            }
+        }
         return node;
     }
 
     if (type === 'group' || type === 'object') {
         const node = createNode(type, null);
-        if (node) {selectNode(node.id);}
+        if (node) {
+            selectNode(node.id);
+
+            const parent = node.parent_id ?getNode(node.parent_id) : null;
+            if (parent?.type === 'object') {
+                spriteOptions(parent);
+            }
+        }
         return node;
     }
 
