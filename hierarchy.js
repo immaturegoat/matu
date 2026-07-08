@@ -37,6 +37,7 @@ const node_rotation = document.getElementById('node-rotation');
 const node_sprite_fields = document.getElementById('node-sprite-fields');
 const node_sprite_asset = document.getElementById('node-sprite-asset');
 const node_sprite_visible = document.getElementById('node-sprite-visible');
+const node_sprite_opacity = document.getElementById('node-sprite-opacity');
 
 const node_audio_fields = document.getElementById('node-audio-fields');
 const node_audio_asset = document.getElementById('node-audio-asset');
@@ -90,6 +91,7 @@ function createNode(type, parent_id = null, name = null) {
     } else if (type === 'sprite') {
         node.asset_name = null;
         node.visible = true;
+        node.opacity = 1;
     } else if (type === 'audio') {
         node.asset_name = null;
         node.volume = 1;
@@ -313,6 +315,7 @@ function openNodeInspector(node) {
     } else if (node.type === 'sprite') {
         assetOptions(node_sprite_asset, 'image/', node.asset_name);
         node_sprite_visible.checked = node.visible;
+        node_sprite_opacity.value = node.opacity ?? 1;
     } else if (node.type === 'audio') {
         assetOptions(node_audio_asset, 'audio/', node.asset_name);
         node_audio_volume.value = node.volume;
@@ -366,6 +369,12 @@ node_sprite_visible.addEventListener('change', () => {
     if (!node || node.type !== 'sprite') return;
     node.visible = node_sprite_visible.checked;
 });
+
+node_sprite_opacity.addEventListener('input', () => {
+    const node = getSelected();
+    if (!node || node.type !== 'sprite') return;
+    node.opacity = Number(node_sprite_opacity.value);
+})
 
 node_audio_asset.addEventListener('change', () => {
     const node = getSelected();

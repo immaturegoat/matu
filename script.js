@@ -121,6 +121,11 @@ function drawGrid() {
         context.lineTo(world_width, y);
         context.stroke();
     }
+
+    context.beginPath();
+    context.moveTo(world_width, 0);
+    context.lineTo(world_width, world_height);
+    context.stroke();
 }
 
 function drawScene() {
@@ -151,13 +156,17 @@ function drawObject(object_node, sprite_node) {
     if (!img || !img.complete) return;
 
     const {x, y, width, height, rotation} = object_node.transform;
+    const opacity = sprite_node.opacity ?? 1;
+
+    context.save();
+    context.globalAlpha = opacity;
 
     if (!rotation) {
         context.drawImage(img, x, y, width, height);
+        context.restore();
         return;
     }
 
-    context.save();
     context.translate(x + width / 2, y + height / 2);
     context.rotate(rotation);
     context.drawImage(img, -width / 2, -height / 2, width, height);
@@ -289,6 +298,16 @@ function closeInspector(item, remove_item) {
     close_inspector.classList.remove('show');
     item.classList.remove(remove_item);
 }
+
+close_inspector.addEventListener('click', () => {
+    const selected_tile = document.querySelector('.asset-selected');
+    if (selected_tile) {
+        closeInspector(selected_tile, 'asset-selected');
+    } else {
+        asset_select.style.display = 'none';
+        close_inspector.classList.remove('show');
+    }
+});
 
 function openPreview(name) {
     if (preview_windows.has(name)) {
@@ -511,12 +530,11 @@ asset_input.addEventListener('change', () => {
             asset_tiles.delete(current_name);
             asset_images.delete(current_name);
 
-            closeInspector(item, 'asset-item');
-        });
+            const belongs_to_asset = asset_select.style.display !== 'none' && inspector_filename.textContent === current_name;
 
-        // close inspector
-        close_inspector.addEventListener('click', () => {
-            closeInspector(item, 'asset-selected');
+            if (belongs_to_asset) {
+                closeInspector(item, 'asset-item');
+            }
         });
 
         const label = document.createElement('div');

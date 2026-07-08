@@ -1,7 +1,25 @@
+// example script:
+// function start(self, matu) {
+//     self.speed = 150;
+// }
+
+// function update(self, matu, dt) {
+//     if (matu.input.isDown('arrowright')) self.transform.x += self.speed * dt;
+//     if (matu.input.isDown('arrowleft'))  self.transform.x -= self.speed * dt;
+//     if (matu.input.isDown('arrowdown'))  self.transform.y += self.speed * dt;
+//     if (matu.input.isDown('arrowup'))    self.transform.y -= self.speed * dt;
+// }
+
+// function onDestroy(self, matu) {
+//     matu.log(self.name, 'stopped at', self.transform.x, self.transform.y);
+// }
+
 const run_button = document.getElementById('run-button');
 const stop_button = document.getElementById('stop-button');
 const runtime_status = document.getElementById('runtime-status');
 const node_script_error = document.getElementById('node-script-error');
+const console_content = document.getElementById('console-content');
+const clear_console_button = document.getElementById('clear-console');
 
 const runtime = {
     running: false,
@@ -10,6 +28,19 @@ const runtime = {
     snapshot: null,
     keys_down: new Set()
 };
+
+function logToConsole(message, level='log') {
+    const entry = document.createElement('div');
+    entry.className = `console-entry console=${level}`;
+    const time = new Date().toLocaleTimeString();
+    entry.textContent = `[${time}] ${message}`;
+    console_content.appendChild(entry);
+    console_content.scrollTop = console_content.scrollHeight;
+}
+
+clear_console_button.addEventListener('click', () => {
+    console_content.innerHTML = '';
+});
 
 function compileScript(node) {
     if (!node || node.type !== 'script') return;
@@ -21,7 +52,7 @@ function compileScript(node) {
             return {
                 start: typeof start === 'function' ? start : null,
                 update: typeof update === 'function' ? update : null,
-                onDestroy: typeof onDestroy === 'function' ? onDestroy null
+                onDestroy: typeof onDestroy === 'function' ? onDestroy : null
             };    
         `);
         node.compiled = factory();
@@ -29,6 +60,7 @@ function compileScript(node) {
     } catch (error) {
         node.compiled = null;
         node.error = error.message;
+        logToConsole(`Compiler error in ${node.name}: ${error.message}`, 'error');
     }
 
     if (selected_node_id === node.id) {
@@ -69,18 +101,18 @@ const matuAPI = {
         }
         return null;
     },
-    getNode(id) {
+    getNodeByID(id) {
         return hierarchy_nodes.get(id) || null;
     },
     spawn(type, parentId, name) {
         const node = createNode(type, parentId, name);
-        if (node) render();
+        if (node) renderUI();
         return node;
     },
     destroy(node) {
         if (!node) return;
         deleteNode(node.id);
-        render();
+        renderUI();
     },
     input: {
         isDown(key) {
@@ -89,6 +121,7 @@ const matuAPI = {
     },
     log(...args) {
         console.log('[script]', ...args);
+        logToConsole(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ', 'log'));
     }
 };
 
@@ -137,7 +170,8 @@ function startRun() {
 
     const ok = compileAll();
     if (!ok) {
-        runtime_status.textContent = 'compiling error, check script nodes';
+        runtime_status.textContent = 'compiling error: check script nodes';
+        logToConsole('Run aborted: one or more scripts failed to compile', 'error');
         return;
     }
 
@@ -146,6 +180,7 @@ function startRun() {
     runtime.last_time = performance.now();
     runtime.keys_down.clear();
     setUI(true);
+    logToConsole('Run started', 'info');
 
     for (const node of hierarchy_nodes.values()) {
         if (node.type !== 'script' || !node.compiled?.start) continue;
@@ -182,6 +217,7 @@ function stopRun() {
 
     setUI(false);
     renderUI();
+    logToConsole('Run stopped', 'info');
 
     const selected = getSelected();
     if (selected) openNodeInspector(selected);
@@ -191,7 +227,8 @@ function reportScriptError(node, error) {
     node.error = error.message;
     console.error(`Script error in ${node.name}: `, error);
     runtime_status.textContent = `error in ${node.name}: ${error.message}`;
-    if (selected_node_id === node.id) showScriptError(node);
+    logToConsole(`Script error in ${node.name}: ${error.message}`, 'error');
+    if (selected_node_id === node.id) showError(node);
 }
 
 function tick(now) {

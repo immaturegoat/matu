@@ -24,6 +24,14 @@
     --inspector-bg: #202028;
     --inspector-font: #eef1f4;
     --rename-color: #2a2a32;
+    --console-bg: #181821;
+    --console-font: #dcdce3;
+    --console-error: #ff9a9a;
+    --console-error-bg: #2a1010;
+    --console-warn-bg: #2a2410;
+    --console-warn: #f4d58d;
+    --console-info: #9adcff;
+    --console-log: #dcdce3;
     --border-radius: 4px;
 
     --white: #eef1f4;
@@ -40,6 +48,7 @@ html, body {
     margin: 0;
     scrollbar-width: thin;
     scrollbar-color: var(--hierarchy-bg) var(--node-highlight);
+    overflow: hidden;
 }
 
 ::-webkit-scrollbar {
@@ -288,13 +297,13 @@ h1 {
     font-style: normal;
 }
 
-#node-visible-holder {
+#node-appearance {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-#node-visible-holder select {
+#node-appearance select {
     flex: 1 1 auto;
     width: auto;
 }
@@ -325,7 +334,7 @@ h1 {
   flex: 0 0 auto;
   border: 2px solid var(--highlight-color);
   border-radius: var(--border-radius);
-  background-color: var(--inspector-font);
+  background-color: var(--inspector-bg);
   display: inline-grid;
   place-content: center;
   cursor: pointer;
@@ -342,6 +351,36 @@ h1 {
 
 #node-sprite-visible:checked::before, #node-audio-loop:checked::before {
   transform: scale(1);
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    cursor: pointer;
+    outline: none;
+    border: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 15px;
+    background: var(--inspector-bg);
+    border-radius: 16px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 15px;
+    width: 15px;
+    background-color: var(--inspector-bg);
+    border-radius: 50%;
+    border: 2px solid var(--highlight-color);
+}
+
+input[type="range"] {
+    overflow: hidden;
+    border-radius: 16px;
 }
 
 .hierarchy-node.dragover {
@@ -465,7 +504,7 @@ h1 {
 }
 
 #assets {
-    flex: 0 0 29%;
+    flex: 0 0 30%;
     overflow: hidden;
     position: relative;
     color: var(--assets-font);
@@ -575,14 +614,20 @@ h1 {
     color: var(--inspector-font);
 }
 
-#inspector {
+#right {
     width: 15%;
     height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#inspector {
+    flex: 0 0 65%;
     background-color: var(--inspector-bg);
     color: var(--inspector-font);
     display: flex;
     flex-direction: column;
-    max-height: 100%;
+    max-height: 65%;
     overflow: scroll;
 }
 
@@ -668,4 +713,63 @@ h1 {
     font-optical-sizing: auto;
     font-style: normal;
     margin-top: 5px;
+}
+
+#console {
+    flex: 0 0 35%;
+    background-color: var(--console-bg);
+    color: var(--console-font);
+    display: flex;
+    flex-direction: column;
+    max-height: 35%;
+    overflow-y: scroll;
+}
+
+#console-content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.7rem;
+    line-height: 1.35;
+}
+
+.console-entry {
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 3px 5px;
+    border-radius: var(--border-radius);
+    color: var(--console-font);
+}
+
+.console-entry.console-error {
+    color: var(--console-error);
+    background-color: var(--console-error-bg);
+}
+
+.console-entry.console-warn {
+    color: var(--console-warn);
+    background-color: var(--console-warn-bg);
+}
+
+.console-entry.console-info {
+    color: var(--console-info);
+}
+
+.console-entry.console-log {
+    color: var(--console-log);
+}
+
+#clear-console {
+    color: var(--console-font);
+    font-size: 13px;
+    transition: all 0.2s ease;
+    border: 2px solid var(--danger);
+}
+
+#clear-console:hover {
+    background-color: var(--danger);
+    color: var(--console-bg);
 }
