@@ -356,17 +356,18 @@ body:not(.dragging-node) .hierarchy-node:hover {
   transform: scale(1);
 }
 
-.opacity-slider {
+.slider {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.opacity-slider input {
+.slider input {
     flex: 1;
+    text-align: center;
 }
 
-.opacity-slider input[type="number"] {
+.slider input[type="number"] {
     width: 45px;
     padding: 3px;
     text-align: center;

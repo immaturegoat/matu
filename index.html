@@ -106,7 +106,7 @@
                             <label class="checkbox-label">Visible <input id="node-sprite-visible" type="checkbox"></label>
                         </div>
 
-                        <div class="opacity-slider">
+                        <div class="slider">
                             <label for="node-sprite-opacity">Opacity</label>
                             <input id="node-sprite-opacity" type="range" min="0" max="1" step="0.01">
                             <input id="node-sprite-opacity-value" type="number" min="0" max="100" step="1" value="100">
@@ -116,9 +116,14 @@
                     <div id="node-audio-fields" class="node-field-group">
                         <label for="node-audio-asset">Audio asset</label>
                         <select id="node-audio-asset"></select>
-                        <label for="node-audio-volume">Volume</label>
-                        <input id="node-audio-volume" type="range" min="0" max="1" step="0.01">
-                        <label class="checkbox-label"><input id="node-audio-loop" type="checkbox"> Loop</label>
+                        
+                        <div class="slider">
+                            <label for="node-audio-volume">Volume</label>
+                            <input id="node-audio-volume" type="range" min="0" max="1" step="0.01">
+                            <input id="node-audio-volume-value" type="number" min="0" max="100" step="1" value="100">
+                        </div>
+
+                        <label class="checkbox-label">Loop <input id="node-audio-loop" type="checkbox"></label>
                     </div>
 
                     <div id="node-script-fields" class="node-field-group">

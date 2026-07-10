@@ -53,6 +53,7 @@ const node_sprite_opacity_value = document.getElementById('node-sprite-opacity-v
 const node_audio_fields = document.getElementById('node-audio-fields');
 const node_audio_asset = document.getElementById('node-audio-asset');
 const node_audio_volume = document.getElementById('node-audio-volume');
+const node_audio_volume_value = document.getElementById('node-audio-volume-value');
 const node_audio_loop = document.getElementById('node-audio-loop');
 
 const node_script_fields = document.getElementById('node-script-fields');
@@ -493,7 +494,8 @@ function openNodeInspector(node) {
         node_sprite_opacity_value.textContent = Math.round((node.opacity ?? 1) * 100);
     } else if (node.type === 'audio') {
         assetOptions(node_audio_asset, 'audio/', node.asset_name);
-        node_audio_volume.value = node.volume;
+        node_audio_volume.value = node.volume ?? 1;
+        node_audio_volume_value.value = Math.round((node.volume ?? 1) * 100);
         node_audio_loop.checked = node.loop;
     } else if (node.type === 'script') {
         node_script_code.value = node.code;
@@ -659,8 +661,26 @@ node_audio_asset.addEventListener('change', () => {
 node_audio_volume.addEventListener('input', () => {
     const node = getSelected();
     if (!node || node.type !== 'audio') return;
+
     node.volume = Number(node_audio_volume.value);
+    node_audio_volume_value.value = Math.round(node.volume * 100);
 });
+
+node_audio_volume_value.addEventListener('input', () => {
+    const node = getSelected();
+    if(!node || node.type !== 'audio') return;
+
+    let percent = Number(node_audio_volume_value.value);
+
+    if (Number.isNaN(percent)) return;
+
+    percent = Math.min(100, Math.max(0, percent));
+
+    node.volume = percent / 100;
+    node_audio_volume.value = node.volume;
+
+    node_audio_volume_value.value = percent;
+})
 
 node_audio_loop.addEventListener('change', () => {
     const node = getSelected();
