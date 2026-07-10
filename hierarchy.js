@@ -14,16 +14,13 @@ const node_icons = {
     script: 'C:'
 }
 
-let group_names = new Set();
-let object_names = new Set();
-let sprite_names = new Set();
-let audio_names = new Set();
-let script_names = new Set();
-
 let next_node_id = 1;
 
 const hierarchy_nodes = new Map();
 const hierarchy_roots = [];
+
+let current_drop_indicator = null;
+let dragged_node_id = null;
 
 let selected_node_id = null;
 
@@ -79,91 +76,30 @@ function childAcceptable(parent_type, child_type) {
     return valid_children[parent_type]?.includes(child_type) ?? false;
 }
 
-function uniqueName(name, type) {
-    switch (type) {
-        case 'group': 
-            if (group_names.has(name)) {
-                let counter = 1;
-                let new_name = `${name} ${counter + 1}`;
-
-                while (group_names.has(new_name)) {
-                    counter++;
-                    new_name = `${base} ${counter + 1}`;
-                }
-
-                group_names.add(new_name);
-                return new_name;
-            }
-            group_names.add(name);
-            return name;
-            break;
-        case 'object': 
-            if (object_names.has(name)) {
-                let counter = 1;
-                let new_name = `${name} ${counter + 1}`;
-
-                while (object_names.has(new_name)) {
-                    counter++;
-                    new_name = `${base} ${counter + 1}`;
-                }
-
-                object_names.add(new_name);
-                return new_name;
-            }
-            object_names.add(name);
-            return name;
-            break;
-        case 'sprite': 
-            if (sprite_names.has(name)) {
-                let counter = 1;
-                let new_name = `${name} ${counter + 1}`;
-
-                while (sprite_names.has(new_name)) {
-                    counter++;
-                    new_name = `${base} ${counter + 1}`;
-                }
-
-                sprite_names.add(new_name);
-                return new_name;
-            }
-            sprite_names.add(name);
-            return name;
-            break;
-        case 'audio': 
-            if (audio_names.has(name)) {
-                let counter = 1;
-                let new_name = `${name} ${counter + 1}`;
-
-                while (audio_names.has(new_name)) {
-                    counter++;
-                    new_name = `${base} ${counter + 1}`;
-                }
-
-                audio_names.add(new_name);
-                return new_name;
-            }
-            audio_names.add(name);
-            return name;
-            break;
-        case 'script': 
-            if (script_names.has(name)) {
-                let counter = 1;
-                let new_name = `${name} ${counter}`;
-
-                while (script_names.has(new_name)) {
-                    counter++;
-                    new_name = `${base} ${counter}`;
-                }
-
-                script_names.add(new_name);
-                return new_name;
-            }
-            script_names.add(name);
-            return name;
-            break;
-        default:
-            return;
+function nameExists(name, type, ignore_id = null) {
+    for (const node of hierarchy_nodes.values()) {
+        if (node.id !== ignore_id && node.type === type && node.name === name) {
+            return true;
+        }
     }
+
+    return false;
+}
+
+function uniqueName(name, type, ignore_id = null) {
+    if (nameExists(name, type, ignore_id)) {
+        let counter = 1;
+        let new_name = `${name} ${counter + 1}`;
+
+        while (nameExists(new_name, type, ignore_id)) {
+            counter++;
+            new_name = `${name} ${counter + 1}`;
+        }
+
+        return new_name;
+    }
+
+    return name;
 }
 
 function createNode(type, parent_id = null, name = null) {
@@ -185,7 +121,7 @@ function createNode(type, parent_id = null, name = null) {
     }
 
     const id = makeNodeID();
-    const node = {id, type, name: name || defaultNameFor(type), parent_id, child_ids: []};
+    const node = {id, type, name: name ?? defaultNameFor(type), parent_id, child_ids: []};
 
     if (type === 'object') {
         node.transform = {x: 0, y: 0, width: 100, height: 100, rotation: 0};
@@ -253,32 +189,55 @@ function isDescendant(candidate_id, ancestor_id) {
     return false;
 }
 
-function reparentNode(id, new_parent_id) {
+function clearIndicator() {
+    if (!current_drop_indicator) return;
+    current_drop_indicator.classList.remove('drop-before', 'drop-after', 'drop-inside');
+    current_drop_indicator = null;
+}
+
+function moveNode(id, new_parent_id, insert_index) {
     const node = hierarchy_nodes.get(id);
     if (!node) return false;
 
     if (new_parent_id) {
-        const new_parent = hierarchy_nodes.get(new_parent_id);
-        if (!new_parent || !childAcceptable(new_parent.type, node.type)) return false;
+        const parent = hierarchy_nodes.get(new_parent_id);
+        if (!parent || !childAcceptable(parent.type, node.type)) return false;
         if (id === new_parent_id || isDescendant(new_parent_id, id)) return false;
     } else if (node.type !== 'group' && node.type !== 'object') {
         return false;
     }
 
+    let old_array;
+
     if (node.parent_id) {
-        const old_parent = hierarchy_nodes.get(node.parent_id);
-        if (old_parent) old_parent.child_ids = old_parent.child_ids.filter(cid => cid !== id);
+        old_array = hierarchy_nodes.get(node.parent_id).child_ids;
     } else {
-        const index = hierarchy_roots.indexOf(id);
-        if (index !== -1) hierarchy_roots.splice(index, 1);
+        old_array = hierarchy_roots;
+    }
+
+    const old_index = old_array.indexOf(id);
+    if (old_index !== -1) {
+        old_array.splice(old_index, 1);
+    }
+
+    const same_parent = node.parent_id === new_parent_id;
+
+    if (same_parent && old_index < insert_index) {  // broo i can't stop typing idnex instead of index aksd;fkadsl; where is autocorrect when you need it...
+        insert_index--;
     }
 
     node.parent_id = new_parent_id;
+
+    let new_array;
+
     if (new_parent_id) {
-        hierarchy_nodes.get(new_parent_id).child_ids.push(id);
+        new_array = hierarchy_nodes.get(new_parent_id).child_ids;
     } else {
-        hierarchy_roots.push(id);
+        new_array = hierarchy_roots;
     }
+
+    insert_index = Math.max(0, Math.min(insert_index, new_array.length));
+    new_array.splice(insert_index, 0, id);
 
     return true;
 }
@@ -320,7 +279,7 @@ function buildNodeElement(id, depth) {
     row.style.paddingLeft = 8 + (depth * 16) + 'px';
     row.dataset.id = id;
 
-    if (id === selected_node_id) {
+    if (id === selected_node_id && id !== dragged_node_id) {
         row.classList.add('hierarchy-node-selected');
     }
 
@@ -344,32 +303,70 @@ function buildNodeElement(id, depth) {
 
     row.addEventListener('dragstart', (e) => {
         e.stopPropagation();
+        document.body.classList.add('dragging-node');
+        dragged_node_id = id;
         e.dataTransfer.setData('text/plain', id);
         e.dataTransfer.effectAllowed = 'move';
+
+        row.classList.remove('hierarchy-node-selected');
     });
 
     row.addEventListener('dragover', (e) => {
-        e.preventDefault();
         e.stopPropagation();
-        row.classList.add('hierarchy-node-dragover');
+        e.preventDefault();
+
+        clearIndicator();
+
+        const rect = row.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+
+        if (y < rect.height * 0.25) {
+            row.classList.add('drop-before');
+        } else if (y > rect.height * 0.75) {
+            row.classList.add('drop-after');
+        } else {
+            const dragged = hierarchy_nodes.get(dragged_node_id);
+            if (dragged && childAcceptable(node.type, dragged.type)) {
+                row.classList.add('drop-inside');
+            }
+        }
+
+        current_drop_indicator = row;
     });
 
-    row.addEventListener('dragleave', () => {
-        row.classList.remove('hierarchy-node-dragover');
+    row.addEventListener('dragend', (e) => {
+        e.stopPropagation();
+        document.body.classList.remove('dragging-node');
+        clearIndicator();
+        dragged_node_id = null;
+        renderUI();
     });
 
     row.addEventListener('drop', (e) => {
-        e.preventDefault();
         e.stopPropagation();
-        row.classList.remove('hierarchy-node-dragover');
+        e.preventDefault();
 
+        clearIndicator();
         const dragged_id = e.dataTransfer.getData('text/plain');
         if (!dragged_id || dragged_id === id) return;
 
-        const moved = reparentNode(dragged_id, id);
-        if (!moved) {
-            console.warn(`Can't move that node onto a ${node.type}`);
+        const rect = row.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+
+        if (y < rect.height * 0.25) {
+            const parent_id = node.parent_id;
+            const siblings = parent_id ? hierarchy_nodes.get(parent_id).child_ids : hierarchy_roots;
+
+            moveNode(dragged_id, parent_id, siblings.indexOf(id));  // I KEEP TYPING IDNEXOF ASLKDJFLAKSJD;L
+        } else if (y > rect.height * 0.75) {
+            const parent_id = node.parent_id;
+            const siblings = parent_id ? hierarchy_nodes.get(parent_id).child_ids : hierarchy_roots;
+
+            moveNode(dragged_id, parent_id, siblings.indexOf(id) + 1);
+        } else {
+            moveNode(dragged_id, id, hierarchy_nodes.get(id).child_ids.length);
         }
+
         renderUI();
     });
 
@@ -566,28 +563,9 @@ node_name_input.addEventListener('input', () => {
 node_name_input.addEventListener('blur', () => {
     const node = getSelected();
     let working_name = node_name_input.value;
-    switch (node.type) {
-        case 'group': 
-            node.name = uniqueName(working_name, 'group'); 
-            break;
-        case 'object': 
-            node.name = uniqueName(working_name, 'object'); 
-            break;
-        case 'sprite': 
-            node.name = uniqueName(working_name, 'sprite'); 
-            const parent = getNode(node.parent_id);
-            if (parent?.type === 'object') {
-                assetOptions(parent);
-            }
-            break;
-        case 'audio': 
-            node.name = uniqueName(working_name, 'audio'); 
-            break;
-        case 'script': 
-            node.name = uniqueName(working_name, 'script'); 
-            break;
-    }
-    
+
+    node.name = uniqueName(working_name, node.type, node.id);
+
     node_name_input.value = node.name;
     renderUI();
 });

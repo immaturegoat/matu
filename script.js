@@ -1,4 +1,5 @@
 // this is honestly getting very messy and it's getting hard to keep track of things lol, i should've split this into multiple files
+// this is me, 5 days later. should i still split this file up? i think this is fine rn
 const add_hierarchy = document.getElementById('add-hierarchy');
 const hierarchy_dropdown_content = document.getElementById('hierarchy-dropdown-content');
 let dropdown_open = false;

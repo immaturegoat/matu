@@ -194,7 +194,7 @@ h1 {
     transition: background-color 0.15s ease;
 }
 
-.hierarchy-node:hover {
+body:not(.dragging-node) .hierarchy-node:hover {
     background-color: var(--node-highlight);
 }
 
@@ -410,6 +410,18 @@ input[type="range"] {
 .hierarchy-node.dragover {
     outline: 2px dashed var(--highlight-color);
     outline-offset: -2px;
+}
+
+.drop-before {
+    border-top: 2px solid var (--highlight-color);
+}
+
+.drop-after {
+    border-bottom: 2px solid var(--highlight-color);
+}
+
+.drop-inside {
+    background: var(--selected-highlight);
 }
 
 #center {
