@@ -538,6 +538,33 @@ function renderUI() {
     hierarchy_roots.forEach(id => hierarchy_content.appendChild(buildNodeElement(id, 0)));
 }
 
+function computeDrop(e, row, node) {
+    const dragged = hierarchy_nodes.get(dragged_node_id);
+    if (!dragged) return null;
+    if (dragged_node_id === node.id || isDescendant(node.id, dragged_node_id)) return null;
+
+    const go_inside = childAcceptable(node.type, dragged.type);
+    const rect = row.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+
+    let zone;
+    if (go_inside) {
+        if (y < rect.height * 0.25) zone = 'before';
+        else if (y > rect.height * 0.75) zone = 'after';
+        else zone = 'inside';
+    } else {
+        zone = y < rect.height * 0.5 ? 'before' : 'after';
+    }
+
+    if (zone !== 'inside') {
+        const parent_type = node.parent_id ? hierarchy_nodes.get(node.parent_id).type : null;
+        const valid = parent_type ? childAcceptable(parent_type, dragged.type) : (dragged.type === 'group' || dragged.type === 'object');
+        if (!valid) return null;
+    }
+
+    return zone;
+}
+
 function buildNodeElement(id, depth) {
     const node = hierarchy_nodes.get(id);
 
@@ -582,23 +609,28 @@ function buildNodeElement(id, depth) {
         e.stopPropagation();
         e.preventDefault();
 
-        clearIndicator();
+        const zone = computeDrop(e, row, node);
 
-        const rect = row.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-
-        if (y < rect.height * 0.25) {
-            row.classList.add('drop-before');
-        } else if (y > rect.height * 0.75) {
-            row.classList.add('drop-after');
-        } else {
-            const dragged = hierarchy_nodes.get(dragged_node_id);
-            if (dragged && childAcceptable(node.type, dragged.type)) {
-                row.classList.add('drop-inside');
-            }
+        if (!zone) {
+            clearIndicator();
+            e.dataTransfer.dropEffect = 'none';
+            return;
         }
 
-        current_drop_indicator = row;
+        if (current_drop_indicator !== row || !row.classList.contains(`drop-${zone}`)) {
+            clearIndicator();
+            row.classList.add(`drop-${zone}`);
+            current_drop_indicator = row;
+        }
+
+        e.dataTransfer.dropEffect = 'move';
+    });
+
+    row.addEventListener('dragleave', (e) => {
+        e.stopPropagation();
+        if (!row.contains(e.relatedTarget)) {
+            clearIndicator();
+        }
     });
 
     row.addEventListener('dragend', (e) => {
@@ -613,24 +645,21 @@ function buildNodeElement(id, depth) {
         e.stopPropagation();
         e.preventDefault();
 
+        const zone = computeDrop(e, row, node);
         clearIndicator();
+
         const dragged_id = e.dataTransfer.getData('text/plain');
-        if (!dragged_id || dragged_id === id) return;
-
-        const rect = row.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-
-        if (y < rect.height * 0.25) {
+        if (!dragged_id || !zone) return;
+        
+        if (zone === 'before') {
             const parent_id = node.parent_id;
             const siblings = parent_id ? hierarchy_nodes.get(parent_id).child_ids : hierarchy_roots;
-
-            moveNode(dragged_id, parent_id, siblings.indexOf(id));  // I KEEP TYPING IDNEXOF ASLKDJFLAKSJD;L
-        } else if (y > rect.height * 0.75) {
+            moveNode(dragged_id, parent_id, siblings.indexOf(id));
+        } else if (zone === 'after') {
             const parent_id = node.parent_id;
             const siblings = parent_id ? hierarchy_nodes.get(parent_id).child_ids : hierarchy_roots;
-
             moveNode(dragged_id, parent_id, siblings.indexOf(id) + 1);
-        } else {
+        } else if (zone === 'inside') {
             moveNode(dragged_id, id, hierarchy_nodes.get(id).child_ids.length);
         }
 
@@ -838,6 +867,30 @@ node_name_input.addEventListener('input', () => {
 
     if (node.type === 'script') {
         syncPopoutTitle(node);
+    }
+});
+
+hierarchy_content.addEventListener('dragover', (e) => {
+    if (e.target !== hierarchy_content) return;
+    e.preventDefault();
+    clearIndicator();
+    e.dataTransfer.dropEffect = dragged_node_id ? 'move' : 'none';
+});
+
+hierarchy_content.addEventListener('drop', (e) => {
+    if (e.target !== hierarchy_content) return;
+    e.preventDefault();
+    const dragged_id = e.dataTransfer.getData('text/plain');
+    const dragged = hierarchy_nodes.get(dragged_id);
+    if (dragged && (dragged.type === 'group' || dragged.type === 'object')) {
+        moveNode(dragged_id, null, hierarchy_roots.length);
+        renderUI();
+    }
+});
+
+hierarchy_content.addEventListener('dragleave', (e) => {
+    if (!hierarchy_content.contains(e.relatedTarget)) {
+        clearIndicator();
     }
 });
 
