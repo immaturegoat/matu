@@ -57,6 +57,13 @@ const inspector_w = document.getElementById('inspector-width');
 const inspector_h = document.getElementById('inspector-height');
 let selected_object = null;
 
+const local_storage_key = 'matu_project';
+const save_browser_button = document.getElementById('save-browser-button');
+const load_browser_button = document.getElementById('load-browser-button');
+const save_file_button = document.getElementById('save-file-button');
+const load_file_button = document.getElementById('load-file-button');
+const project_file_input = document.getElementById('project-file-input');
+
 // hierarchy dropdown
 add_hierarchy.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -560,97 +567,271 @@ function refreshAssets() {
     }
 }
 
-// upload assets
-asset_input.addEventListener('change', () => {
-    const files = Array.from(asset_input.files);
+function registerAsset(file, forced_name=null) {
+    const unique_name = forced_name || getName(file.name);
+    asset_names.add(unique_name);
 
-    files.forEach(file => {
-        const unique_name = getName(file.name);
-        asset_names.add(unique_name);
+    const item = document.createElement('div');
+    item.classList.add('asset-item');
 
-        const item = document.createElement('div');
-        item.classList.add('asset-item');
+    let thumbnail;
 
-        let thumbnail;
-        if (file.type.startsWith('image/')) {
-            thumbnail = document.createElement('img');
-            thumbnail.classList.add('asset-thumb');
-            thumbnail.src = URL.createObjectURL(file);
-        } else if (file.type.startsWith('audio/')) {
-            thumbnail = document.createElement('div');
-            thumbnail.classList.add('asset-audio-thumb');
-            thumbnail.textContent = '🎵';
-        } else {
-            thumbnail = document.createElement('div');
-            thumbnail.classList.add('asset-generic-thumb');
-            thumbnail.textContent = '📄';
+    if (file.type.startsWith('image/')) {
+        thumbnail = document.createElement('img');
+        thumbnail.classList.add('asset-thumb');
+        thumbnail.src = URL.createObjectURL(file);
+    } else if (file.type.startsWith('audio/')) {
+        thumbnail = document.createElement('div');
+        thumbnail.classList.add('asset-audio-thumb');
+        thumbnail.textContent = '🎵';
+    } else {
+        thumbnail = document.createElement('div');
+        thumbnail.classList.add('asset-generic-thumb');
+        thumbnail.textContent = '📄';
+    }
+
+    const delete_button = document.createElement('button');
+    delete_button.classList.add('delete-asset');
+    delete_button.textContent = 'x';
+    delete_button.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        const current_name = item.dataset.name;
+
+        if (preview_windows.has(current_name)) {
+            const preview = preview_windows.get(current_name);
+            closePreview(preview, current_name);
         }
 
-        // delete
-        const delete_button = document.createElement('button');
-        delete_button.classList.add('delete-asset');
-        delete_button.textContent = 'x';
-        delete_button.addEventListener('click', (e) => {
-            e.stopPropagation();
+        asset_list.removeChild(item);
+        asset_names.delete(current_name);
+        asset_files.delete(current_name);
+        asset_tiles.delete(current_name);
+        asset_images.delete(current_name);
+        asset_urls.delete(current_name);
 
-            const current_name = item.dataset.name;
+        const belongs_to_asset = asset_select.style.display !== 'none' && inspector_filename.textContent === current_name;
 
-            if (preview_windows.has(current_name)) {
-                const preview = preview_windows.get(current_name);
-                closePreview(preview, current_name);
-            }
-
-            asset_list.removeChild(item);
-            asset_names.delete(current_name);
-            asset_files.delete(current_name);
-            asset_tiles.delete(current_name);
-            asset_images.delete(current_name);
-
-            const belongs_to_asset = asset_select.style.display !== 'none' && inspector_filename.textContent === current_name;
-
-            if (belongs_to_asset) {
-                closeInspector(item, 'asset-item');
-            }
-
-            refreshAssets();
-        });
-
-        const label = document.createElement('div');
-        label.classList.add('asset-label');
-        label.textContent = shortenName(unique_name);
-
-        item.appendChild(thumbnail);
-        item.appendChild(label);
-        item.appendChild(delete_button);
-        item.dataset.name = unique_name;
-        asset_list.appendChild(item);
-
-        asset_files.set(unique_name, file);
-        asset_tiles.set(unique_name, item);
+        if (belongs_to_asset) {
+            closeInspector(item, 'asset-item');
+        }
 
         refreshAssets();
-
-        // asset select
-        item.addEventListener('click', () => {
-            asset_tiles.forEach(tile => tile.classList.remove('asset-selected'));
-            item.classList.add('asset-selected');
-
-            const current_name = item.dataset.name;
-
-            const dot_index = current_name.lastIndexOf('.');
-            const ext = current_name.substring(dot_index);
-            openInspector(current_name, ext);
-        });
-
-        // preview
-        item.addEventListener('dblclick', () => {
-            asset_tiles.forEach(tile => tile.classList.remove('asset-selected'));
-            item.classList.add('asset-selected');
-
-            const current_name = item.dataset.name;
-            openPreview(current_name);
-        });
     });
 
+    const label_element = document.createElement('div');
+    label_element.classList.add('asset-label');
+    label_element.textContent = shortenName(unique_name);
+
+    item.appendChild(thumbnail);
+    item.appendChild(label_element);
+    item.appendChild(delete_button);
+    item.dataset.name = unique_name;
+    asset_list.appendChild(item);
+
+    asset_files.set(unique_name, file);
+    asset_tiles.set(unique_name, item);
+
+    refreshAssets();
+
+    item.addEventListener('click', () => {
+        asset_tiles.forEach(tile => tile.classList.remove('asset-selected'));
+        item.classList.add('asset-selected');
+
+        const current_name = item.dataset.name;
+
+        const dot_index = current_name.lastIndexOf('.');
+        const extension = current_name.substring(dot_index);
+        openInspector(current_name, ext);
+    });
+
+    item.addEventListener('dblclick', () => {
+        asset_tiles.forEach(tile => tile.classList.remove('asset-selected'));
+        item.classList.add('asset-selected');
+        const current_name = item.dataset.name;
+        openPreview(current_name);
+    });
+
+    return unique_name;
+}
+
+asset_input.addEventListener('change', () => {
+    const files = Array.from(asset_input.files);
+    files.forEach(file => registerAsset(file));
     asset_input.value = "";
+});
+
+function fileToURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function URLToFile(data_url, filename, mime) {
+    const [, base64] = data_url.split(',');
+    const bstr = atob(base64);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new File([u8arr], filename, {type: mime || 'application/octet-stream'});
+}
+
+async function serializeAssets() {
+    const assets = [];
+    for (const [name, file] of asset_files.entries()) {
+        const data_url = await fileToURL(file);
+        assets.push({name, type: file.type, data_url});
+    }
+    return assets;
+}
+
+async function serializeProject() {
+    if (runtime.running) stopRun();
+
+    const nodes = [];
+    for (const node of hierarchy_nodes.values()) {
+        const clone = {...node};
+        delete clone.compiled;
+        delete clone.error;
+        nodes.push(clone);
+    }
+
+    return {
+        version: 1,
+        next_node_id,
+        hierarchy_roots: [...hierarchy_roots],
+        nodes,
+        bg_color: scene_state.bg_color,
+        assets: await serializeAssets()
+    };
+}
+
+function clearProject() {
+    for (const id of [...script_popouts.keys()]) closePopout(id);
+    for (const [name, preview] of [...preview_windows.entries()]) closePreview(preview, name);
+
+    hierarchy_nodes.clear();
+    hierarchy_roots.length = 0;
+    selected_node_id = null;
+    closeNodeInspector();
+
+    asset_list.innerHTML = '';
+    asset_names.clear();
+    asset_files.clear();
+    asset_tiles.clear();
+    asset_images.clear();
+    asset_urls.clear();
+}
+
+async function loadProject(data) {
+    if (runtime.running) stopRun();
+    clearProject();
+
+    for (const asset of data.assets || []) {
+        const file = URLToFile(asset.data_url, asset.name, asset.type);
+        registerAsset(file, asset.name);
+    }
+
+    next_node_id = data.next_node_id;
+
+    for (const node_data of data.nodes) {
+        const node = {...node_data};
+        if (node.type === 'script') {
+            node.compiled = null;
+            node.error = null;
+        }
+
+        hierarchy_nodes.set(node.id, node);
+    }
+
+    hierarchy_roots.push(...data.hierarchy_roots);
+    scene_state.bg_color = data.bg_color || '#101014';
+
+    renderUI();
+    compileAll();
+}
+
+async function saveToBrowser() {
+    try {
+        const data = await serializeProject();
+        localStorage.setItem(local_storage_key, JSON.stringify(data));
+        logToConsole('Project saved to browser storage', 'info');
+    } catch (error) {
+        logToConsole(`Failed to save to browser storage: ${error.message}`, 'error');
+        console.error(error);
+    }
+}
+
+async function loadFromBrowser() {
+    const raw = localStorage.getItem(local_storage_key);
+    if (!raw) {
+        logToConsole('No project found in browser storage', 'warn');
+        return;
+    }
+
+    try {
+        const data = JSON.parse(raw);
+        await loadProject(data);
+        logToConsole('Project loaded from browser storage', 'warn');
+    } catch (error) {
+        logToConsole(`Failed to load from browser storage: ${error.message}`, 'error');
+        console.error(error);
+    }
+}
+
+async function saveToFile() {
+    const data = await serializeProject();
+    const json = JSON.stringify(data);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'matu-project.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    logToConsole('Project saved to file', 'info');
+}
+
+async function loadFromFile(file) {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    await loadProject(data);
+}
+
+save_browser_button.addEventListener('click', () => {
+    saveToBrowser();
+});
+
+load_browser_button.addEventListener('click', () => {
+    loadFromBrowser();
+});
+
+save_file_button.addEventListener('click', () => {
+    saveToFile();
+});
+
+load_file_button.addEventListener('click', () => {
+    project_file_input.click();
+});
+
+project_file_input.addEventListener('change', async () => {
+    const file = project_file_input.files[0];
+    if (!file) return;
+
+    try {
+        await loadProject(file);
+        logToConsole('Project loaded from file', 'info');
+    } catch (error) {
+        logToConsole(`Failed to load project file: ${error.message}`, 'error');
+        console.error(error);
+    }
+
+    project_file_input.value = '';
 });

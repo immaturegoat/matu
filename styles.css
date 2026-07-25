@@ -515,6 +515,29 @@ input[type="range"] {
     opacity: 0.7;
 }
 
+.toolbar-spacer {
+    flex: 1 1 auto;
+}
+
+.project-button {
+    padding: 6px 14px;
+    border-radius: var(--border-radius);
+    border: 2px solid var(--highlight-color);
+    background-color: transparent;
+    color: var(--toolbar-font);
+    font-family: "JetBrains Mono", monospace;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.project-button:hover {
+    background-color: var(--highlight-color);
+    color: var(--toolbar-bg);
+}
+
 #viewport {
     flex: 0 0 60%;
     background-color: var(--viewport-bg);
