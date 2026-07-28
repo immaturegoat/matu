@@ -538,6 +538,49 @@ input[type="range"] {
     color: var(--toolbar-bg);
 }
 
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+#export-modal-close {
+    color: var(--inspector-font);
+    transition: all 0.2s ease;
+}
+
+#export-modal-close:hover {
+    color: var(--inspector-bg);
+    background-color: var(--highlight-color);
+}
+
+.modal-box {
+    background-color: var(--inspector-bg);
+    color: var(--inspector-font);
+    border-radius: var(--border-radius);
+    width: 320px;
+    overflow: hidden;
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+}
+
+.modal-content .checkbox-label {
+    justify-content: space-between;
+}
+
 #viewport {
     flex: 0 0 60%;
     background-color: var(--viewport-bg);

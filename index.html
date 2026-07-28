@@ -38,9 +38,26 @@
 
             <button id="save-browser-button" class="project-button">Save</button>
             <button id="load-browser-button" class="project-button">Load</button>
-            <button id="save-file-button" class="project-button">Save to file</button>
-            <button id="load-file-button" class="project-button">Load from file</button>
+            <button id="save-file-button" class="project-button">Save to File</button>
+            <button id="load-file-button" class="project-button">Load from File</button>
             <input type="file" id="project-file-input" accept=".json" style="display: none">
+
+            <button id="export-button" class="project-button">Export Game</button>
+
+            <div id="export-modal" class="modal-overlay">
+                <div class="modal-box">
+                    <div class="panel-header">
+                        <h1>Export Game</h1>
+                        <button id="export-modal-close" class="close-button">x</button>
+                    </div>
+                    <div class="modal-content">
+                        <label class="checkbox-label">Keep grid visible <input id="export-show-grid" type="checkbox"></label>
+                        <label class="checkbox-label">Auto-start on load (no Start button) <input id="export-auto-start" type="checkbox"></label>
+                        <label class="checkbox-label">Include Stop button <input id="export-show-stop" type="checkbox" checked></label>
+                        <button id="export-confirm-button" class="project-button">Export</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="viewport" class="panel">
