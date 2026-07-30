@@ -976,7 +976,7 @@ const globals = new Map();
 const active_timers = new Map();
 let next_timer_id = 1;
 
-const scene_state = {bg-color: project_data.bg_color || '#101014'};
+const scene_state = {bg_color: project_data.bg_color || '#101014'};
 
 const runtime = {running: false, raf_id: null, last_time: 0, keys_down: new Set()};
 

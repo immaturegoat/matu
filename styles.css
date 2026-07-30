@@ -351,7 +351,8 @@ body:not(.dragging-node) .hierarchy-node:hover {
     margin-top: 5px;
 }
 
-#node-sprite-visible, #node-audio-loop, #dimensions-lock, #proportion-lock, #node-label-visible {
+/* should i just make this a class? yes. do i want to? no (im too lazy) */
+#node-sprite-visible, #node-audio-loop, #dimensions-lock, #proportion-lock, #node-label-visible, #export-show-grid, #export-auto-start, #export-show-stop {
     -webkit-appearance: none;
     appearance: none;
     width: 20px;
@@ -366,7 +367,7 @@ body:not(.dragging-node) .hierarchy-node:hover {
     cursor: pointer;
 }
 
-#node-sprite-visible::before, #node-audio-loop::before, #dimensions-lock::before, #proportion-lock::before, #node-label-visible::before {
+#node-sprite-visible::before, #node-audio-loop::before, #dimensions-lock::before, #proportion-lock::before, #node-label-visible::before, #export-show-grid::before, #export-auto-start::before, #export-show-stop::before {
     content: "";
     width: 10px;
     height: 10px;
@@ -375,7 +376,7 @@ body:not(.dragging-node) .hierarchy-node:hover {
     background-color: var(--highlight-color);
 }
 
-#node-sprite-visible:checked::before, #node-audio-loop:checked::before, #dimensions-lock:checked::before, #proportion-lock:checked::before, #node-label-visible:checked::before {
+#node-sprite-visible:checked::before, #node-audio-loop:checked::before, #dimensions-lock:checked::before, #proportion-lock:checked::before, #node-label-visible:checked::before, #export-show-grid:checked::before, #export-auto-start:checked::before, #export-show-stop:checked::before {
     transform: scale(1);
 }
 
