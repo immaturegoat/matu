@@ -602,7 +602,9 @@ function buildNodeElement(id, depth) {
         e.dataTransfer.setData('text/plain', id);
         e.dataTransfer.effectAllowed = 'move';
 
-        row.classList.remove('hierarchy-node-selected');
+        document.querySelectorAll('.hierarchy-node-selected').forEach(element => {
+            element.classList.remove('hierarchy-node-selected');
+        });
     });
 
     row.addEventListener('dragover', (e) => {
@@ -892,6 +894,14 @@ hierarchy_content.addEventListener('dragleave', (e) => {
     if (!hierarchy_content.contains(e.relatedTarget)) {
         clearIndicator();
     }
+});
+
+hierarchy_content.addEventListener('click', (e) => {
+    if (e.target !== hierarchy_content) return;
+    
+    selected_node_id = null;
+    closeNodeInspector();
+    renderUI();
 });
 
 node_name_input.addEventListener('blur', () => {
