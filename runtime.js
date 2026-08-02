@@ -43,40 +43,52 @@ clear_console_button.addEventListener('click', () => {
     console_content.innerHTML = '';
 });
 
-function compileScript(node) {
+function wrapScript(code) {
+    return code + `
+export const __start = typeof start === 'function' ? start : undefined;
+export const __update = typeof update === 'function' ? update : undefined;
+export const __end = typeof end === 'function' ? end : undefined;
+export const __onClone = typeof OnClone === 'function' ? OnClone : undefined;
+export const __onDestroy = typeof OnDestroy === 'function' ? OnDestroy : undefined;
+`;
+}
+
+async function compileScript(node) {
     if (!node || node.type !== 'script') return;
 
+    const module_source = wrapScript(node.code);
+    const blob = new Blob([module_source], {type: 'text/javascript'});
+    const url = URL.createObjectURL(blob);
+
     try {
-        const factory = new Function(`
-            "use strict";
-            ${node.code}
-            return {
-                start: typeof start === 'function' ? start : null,
-                update: typeof update === 'function' ? update : null,
-                end: typeof end === 'function' ? end : null,
-                onClone: typeof OnClone === 'function' ? OnClone : null,
-                onDestroy: typeof OnDestroy === 'function' ? OnDestroy : null
-            };    
-        `);
-        node.compiled = factory();
+        const module = await import(url);
+        node.compiled = {
+            start: module.__start ?? null,
+            update: module.__update ?? null,
+            end: module.__end ?? null,
+            onClone: module.__onClone ?? null,
+            onDestroy: module.__onDestroy ?? null
+        };
         node.error = null;
     } catch (error) {
         node.compiled = null;
         node.error = error.message;
         logToConsole(`Compiler error in ${node.name}: ${error.message}`, 'error');
+    } finally {
+        URL.revokeObjectURL(url);
     }
 
     updateScriptErrors(node);
 }
 
-function compileAll() {
+async function compileAll() {
+    const script_nodes = [...hierarchy_nodes.values()].filter(n => n.type === 'script');
+    await Promise.all(script_nodes.map(node => compileScript(node)));
+
     let ok = true;
-    for (const node of hierarchy_nodes.values()) {
-        if (node.type !== 'script') continue;
-        compileScript(node);
+    for (const node of script_ndoes) {
         if (node.error) ok = false;
     }
-
     return ok;
 }
 
@@ -202,16 +214,19 @@ const matuAPI = {
         renderUI();
 
         const script_nodes = collectScripts(node);
-        for (const script_node of script_nodes) compileScript(script_node);
-
-        for (const script_node of script_nodes) {
-            const owner = hierarchy_nodes.get(script_node.parent_id);
-            try {
-                script_node.compiled?.start?.(owner, matuAPI);
-            } catch (error) {
-                reportScriptError(script_node, error);
+        (async () => {
+            for (const script_node of script_nodes) {
+                await compileScript(script_node);
             }
-        }
+            for (const script_node of script_nodes) {
+                const owner = hierarchy_nodes.get(script_node.parent_id);
+                try {
+                    script_node.compiled?.start?.(owner, matuAPI);
+                } catch (error) {
+                    reportScriptError(script_node, error);
+                }
+            }
+        })();
 
         return node;
     },
@@ -220,25 +235,28 @@ const matuAPI = {
         const parent_id = parent_override_id !== undefined ? parent_override_id : node.parent_id;
         const clone = cloneNodeTree(node.id, parent_id);
         if (!clone) return null;
-
+        
         renderUI();
 
         const script_nodes = collectScripts(clone);
-        for (const script_node of script_nodes) compileScript(script_node);
-
-        for (const script_node of script_nodes) {
-            const owner = hierarchy_nodes.get(script_node.parent_id);
-            try {
-                script_node.compiled?.start?.(owner, matuAPI);
-            } catch (error) {
-                reportScriptError(script_node, error);
+        (async () => {
+            for (const script_node of script_nodes) {
+                await compileScript(script_node);
             }
-            try {
-                script_node.compiled?.onClone?.(owner, matuAPI, node);
-            } catch (error) {
-                reportScriptError(script_node, error);
+            for (const script_node of script_nodes) {
+                const owner = hierarchy_nodes.get(script_node.parent_id);
+                try {
+                    script_node.compiled?.start?.(owner, matuAPI);
+                } catch (error) {
+                    reportScriptError(script_node, error);
+                }
+                try {
+                    script_node.compiled?.onClone?.(owner, matuAPI, node);
+                } catch (error) {
+                    reportScriptError(script_node, error);
+                }
             }
-        }
+        })();
 
         return clone;
     },
@@ -529,10 +547,10 @@ function cloneNodeTree(source_id, new_parent_id) {
     return clone;
 }
 
-function startRun() {
+async function startRun() {
     if (runtime.running) return;
 
-    const ok = compileAll();
+    const ok = await compileAll();
     if (!ok) {
         runtime_status.textContent = 'compiling error: check script nodes';
         logToConsole('Run aborted: one or more scripts failed to compile', 'error');
@@ -557,7 +575,7 @@ function startRun() {
             reportScriptError(node, error);
         }
     }
-
+    
     runtime.raf_id = requestAnimationFrame(tick);
 }
 

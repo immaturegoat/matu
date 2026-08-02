@@ -1456,29 +1456,50 @@ window.addEventListener('keyup', function(e) {
     runtime.keys_down.delete(e.key.toLowerCase());
 });
 
+function wrapScript(code) {
+    return code + '\n' +
+        'export const __start = typeof start === "function" ? start : undefined;\n' +
+        'export const __update = typeof update === "function" ? update : undefined;\n' +
+        'export const __end = typeof end === "function" ? end : undefined;\n' +
+        'export const __onClone = typeof OnClone === "function" ? OnClone : undefined;\n' +
+        'export const __onDestroy = typeof OnDestroy === "function" ? OnDestroy : undefined;\n';
+}
+
 function compileScript(node) {
-    if (!node || node.type !== 'script') return;
-    try {
-        const factory = new Function(
-            '"use strict";\\n' + node.code + '\\n' + 'return {start: typeof start === "function" ? start : null, update: typeof update === "function" ? update : null, end: typeof end === "function" ? end : null, onClone: typeof OnClone === "function" ? OnClone : null, onDestroy: typeof OnDestroy === "function" ? OnDestroy : null};'
-        );
-        node.compiled = factory();
+    if (!node || node.type !== 'script') return Promise.resolve();
+
+    const module_source = wrapScript(node.code);
+    const blob = new Blob([module_source], {type: 'text/javascript'});
+    const url = URL.createObjectURL(blob);
+
+    return import(url).then(function(module) {
+        node.compiled = {
+            start: module.__start || null,
+            update: module.__update || null,
+            end: module.__end || null,
+            onClone: module.__onClone || null,
+            onDestroy: module.__onDestroy || null
+        };
         node.error = null;
-    } catch (error) {
+    }).catch(function(error) {
         node.compiled = null;
         node.error = error.message;
         console.error('Compiler error in ' + node.name + ': ' + error.message);
-    }
+    }).finally(function() {
+        URL.revokeObjectURL(url);
+    });
 }
 
 function compileAll() {
-    let ok = true;
-    for (const node of hierarchy_nodes.values()) {
-        if (node.type !== 'script') continue;
-        compileScript(node);
-        if (node.error) ok = false;
-    }
-    return ok;
+    const script_nodes = [];
+    hierarchy_nodes.forEach(function(node) {
+        if (node.type === 'script') script+nodes.push(node);
+    });
+    return Promise.all(script_nodes.map(compileScript)).then(function() {
+        return script_nodes.every(function(node {
+            return !node.error;
+        }));
+    });
 }
 
 function loadProjectData(data) {
@@ -1675,25 +1696,26 @@ function tick(now) {
 
 function startRun() {
     if (runtime.running) return;
-    compileAll();
-    stored_snapshot = takeSnapshot();
-    globals.clear();
-    active_timers.clear();
-    runtime.running = true;
-    runtime.last_time = performance.now();
-    runtime.keys_down.clear();
-    if (start_button_element) start_button_element.disabled = true;
-    if (stop_button_element) stop_button_element.disabled = false;
-    for (const node of hierarchy_nodes.values()) {
-        if (node.type !== 'script' || !node.compiled || !node.compiled.start) continue;
-        const owner = hierarchy_nodes.get(node.parent_id);
-        try {
-            node.compiled.start(owner, matuAPI);
-        } catch (error) {
-            reportScriptError(node, error);
+    compileAll().then(function() {
+        stored_snapshot = takeSnapshot();
+        globals.clear();
+        active_timers.clear();
+        runtime.running = true;
+        runtime.last_time = performance.now();
+        runtime.keys_down.clear();
+        if (start_button_element) start_button_element.disabled = true;
+        if (stop_button_element) stop_button_element.disabled = false;
+        for (const node of hierarchy_nodes.values()) {
+            if (node.type !== 'script' || !node.compiled || !node.compiled.start) continue;
+            const owner = hierarchy_nodes.get(node.parent_id);
+            try {
+                node.compiled.start(owner, matuAPI);
+            } catch (error) {
+                reportScriptError(node, error);
+            }
         }
-    }
-    runtime.raf_id = requestAnimationFrame(tick);
+        runtime.raf_id = requestAnimationFrame(tick);
+    });
 }
 
 function stopRun() {
