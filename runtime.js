@@ -477,7 +477,7 @@ window.addEventListener('keyup', (e) => runtime.keys_down.delete(e.key.toLowerCa
 
 function takeSnapshot() {
     const snap = new Map();
-    for (const[id, node] of hierarchy_nodes.entries()) {
+    for (const [id, node] of hierarchy_nodes.entries()) {
         if (node.type === 'object') {
             snap.set(id, {transform: {...node.transform}});
         } else if (node.type === 'sprite') {
@@ -488,11 +488,17 @@ function takeSnapshot() {
             snap.set(id, {text: node.text, font_size: node.font_size, font_family: node.font_family, color: node.color, visible: node.visible});
         }
     }
-    return {nodes: snap, bg_color: scene_state.bg_color};
+
+    return {nodes: snap, bg_color: scene_state.bg_color, existing_ids: new Set(hierarchy_nodes.keys())};
 }
 
 function restoreSnapshot(snap) {
-    for (const[id, saved] of snap.nodes.entries()) {
+    const runtime_created_ids = [...hierarchy_nodes.keys()].filter(id => !snap.existing_ids.has(id));
+    for (const id of runtime_created_ids) {
+        deleteNode(id);
+    }
+
+    for (const [id, saved] of snap.nodes.entries()) {
         const node = hierarchy_nodes.get(id);
         if (!node) continue;
         if (node.type === 'object') node.transform = {...saved.transform};

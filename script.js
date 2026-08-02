@@ -1625,15 +1625,23 @@ function render() {
 function takeSnapshot() {
     const snap = new Map();
     for (const node of hierarchy_nodes.values()) {
-        if (node.type === 'object') snap.set(node.id, {transform: Object. assign({}, node.transform)});
-        else if (node.type === 'sprite') snap.set(node.id, {visible: node.visible, asset_name: node.asset_name, opacity: node.opacity, visible: node.visible});
-        else if (node.type === 'audio') snap.set(node.id, {volume: node.volume, loop: node.loop, asset_name: node.asset_name});
+        if (node.type === 'object') snap.set(node.id, {transform: Object.assign({}, node.transform)});
+        else if (node.type === 'sprite') snap.set(node.id, {visible: node.visible, asset_name: node.asset_name, opacity: node.opacity});
+        else if (node.type === 'audio') snap.set(node.id, {volume: node.volume, loop: node.loop, asset_name, node.asset_name});
         else if (node.type === 'label') snap.set(node.id, {text: node.text, font_size: node.font_size, font_family: node.font_family, color: node.color, visible: node.visible});
     }
-    return {nodes: snap, bg_color: scene_state.bg_color};
+
+    return {nodes: snap, bg_color: scene_state.bg_color, existing_ids: new Set(hierarchy_nodes.keys())};
 }
 
 function restoreSnapshot(snap) {
+    const runtime_created_ids = Array.from(hierarchy_nodes.keys()).filter(function(id) {
+        return !snap.existing_ids.has(id);
+    });
+    runtime_created_ids.forEach(function(id) {
+        deleteNode(id);
+    });
+
     snap.nodes.forEach(function(saved, id) {
         const node = hierarchy_nodes.get(id);
         if (!node) return;
@@ -1650,7 +1658,7 @@ function restoreSnapshot(snap) {
             node.text = saved.text;
             node.font_size = saved.font_size;
             node.font_family = saved.font_family;
-            node.color = saved.color;
+            node.color = saved.color
             node.visible = saved.visible;
         }
     });
