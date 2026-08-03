@@ -204,7 +204,7 @@ function drawObject(object_node, sprite_node) {
     }
 
     context.translate(x + width / 2, y + height / 2);
-    context.rotate(rotation);
+    context.rotate(rotation * Math.PI / 180);
     context.drawImage(img, -width / 2, -height / 2, width, height);
     context.restore();
 }
@@ -216,7 +216,7 @@ function drawLabel(object, label) {
 
     context.save();
     context.translate(x, y);
-    if (rotation) context.rotate(rotation);
+    if (rotation) context.rotate(rotation * Math.PI / 180);
 
     context.fillStyle = label.color || '#ffffff';
     context.font = `${label.font_size}px "${label.font_family}"`;
@@ -1129,7 +1129,7 @@ function getAudioElement(node) {
 
 function getOBB(node) {
     const t = node.transform;
-    return {cx: t.x + t.width / 2, cy: t.y + t.height / 2, hw: t.width / 2, hh: t.height / 2, angle: t.rotation || 0};
+    return {cx: t.x + t.width / 2, cy: t.y + t.height / 2, hw: t.width / 2, hh: t.height / 2, angle: (t.rotation || 0) * Math.PI / 180};
 }
 
 function getOBBCorners(obb) {
@@ -1278,11 +1278,11 @@ const matuAPI = {
         },
         setRotation: function(node, degrees) {
             if (!node || node.type !== 'object') return;
-            node.transform.rotation = degrees * Math.PI / 180;
+            node.transform.rotation = degrees;
         },
         rotate: function(node, degrees_delta) {
             if (!node || node.type !== 'object') return;
-            node.transform.ortation += degrees_delta * Math.PI / 180;
+            node.transform.ortation += degrees_delta;
         },
         setSize: function(node, width, height) {
             if (!node || node.type !== 'object') return;
@@ -1574,7 +1574,7 @@ function drawObject(object_node, sprite_node) {
         return;
     }
     context.translate(t.x + t.width / 2, t.y + t.height / 2);
-    context.rotate(t.rotation);
+    context.rotate(t.rotation * Math.PI / 180);
     context.drawImage(img, -t.width / 2, -t.height / 2, t.width, t.height);
     context.restore();
 }
@@ -1584,7 +1584,7 @@ function drawLabel(object_node, label_node) {
     const t = object_node.transform;
     context.save();
     context.translate(t.x, t.y);
-    if (t.rotation) context.rotate(t.rotation);
+    if (t.rotation) context.rotate(t.rotation * Math.PI / 180);
     context.fillStyle = label_node.color || '#ffffff';
     context.font = label_node.font_size + 'px "' + label_node.font_family + '"';
     context.textBaseline = 'top';

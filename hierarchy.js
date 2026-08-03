@@ -779,7 +779,7 @@ function openNodeInspector(node) {
         node_dimension_lock.checked = node.dimension_lock;
         node_proportion_lock.checked = node.proportion_lock;
 
-        node_rotation.value = (node.transform.rotation * 180 / Math.PI).toFixed(1);
+        node_rotation.value = node.transform.rotation.toFixed(1);
 
         previous_width = node.transform.width;
         previous_height = node.transform.height;
@@ -953,7 +953,7 @@ node_proportion_lock.addEventListener('change', () => {
 node_rotation.addEventListener('input', () => {
     const node = getSelected();
     if (!node || node.type !== 'object') return;
-    node.transform.rotation = Number(node_rotation.value) * Math.PI / 180;
+    node.transform.rotation = Number(node_rotation.value);
 });
 
 node_object_sprite.addEventListener('change', () => {

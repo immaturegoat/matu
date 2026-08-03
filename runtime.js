@@ -136,7 +136,7 @@ function getOBB(node) {
         cy: transform.y + transform.height / 2,
         hw: transform.width / 2,
         hh: transform.height / 2,
-        angle: transform.rotation || 0
+        angle: (transform.rotation || 0) * Math.PI / 180
     };
 }
 
@@ -304,11 +304,11 @@ const matuAPI = {
         },
         setRotation(node, degrees) {
             if (!node || node.type !== 'object') return;
-            node.transform.rotation = degrees * Math.PI / 180;
+            node.transform.rotation = degrees;
         },
         rotate(node, degrees_delta) {
             if (!node || node.type !== 'object') return;
-            node.transform.rotation += degrees_delta * Math.PI / 180;
+            node.transform.rotation += degrees_delta;
         },
         setSize(node, width, height) {
             if (!node || node.type !== 'object') return;
