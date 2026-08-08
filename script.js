@@ -784,8 +784,8 @@ async function loadFromBrowser() {
 
     try {
         const data = JSON.parse(raw);
-        await loadFromFile(data);
-        logToConsole('Project loaded from browser storage', 'warn');
+        await loadProject(data);
+        logToConsole('Project loaded from browser storage', 'info');
     } catch (error) {
         logToConsole(`Failed to load from browser storage: ${error.message}`, 'error');
         console.error(error);
@@ -955,6 +955,10 @@ function buildExportCSS() {
 '}\n';
 }
 
+// NOTE: the exported game runtime deliberately uses new Function(), not dynamic import().
+// Exported games are meant to be opened directly via file:// (double-clicking index.html),
+// and browsers refuse to resolve module imports under the file:// origin entirely.
+// new Function() has no such restriction, so exported games work both via file:// and when hosted.
 const export_runtime_source = `
 const valid_children = {
     group: ['group', 'object'],
@@ -1456,38 +1460,21 @@ window.addEventListener('keyup', function(e) {
     runtime.keys_down.delete(e.key.toLowerCase());
 });
 
-function wrapScript(code) {
-    return code + '\n' +
-        'export const __start = typeof start === "function" ? start : undefined;\n' +
-        'export const __update = typeof update === "function" ? update : undefined;\n' +
-        'export const __end = typeof end === "function" ? end : undefined;\n' +
-        'export const __onClone = typeof OnClone === "function" ? OnClone : undefined;\n' +
-        'export const __onDestroy = typeof OnDestroy === "function" ? OnDestroy : undefined;\n';
-}
-
 function compileScript(node) {
-    if (!node || node.type !== 'script') return Promise.resolve();
+    if (!node || node.type !== 'script') return;
 
-    const module_source = wrapScript(node.code);
-    const blob = new Blob([module_source], {type: 'text/javascript'});
-    const url = URL.createObjectURL(blob);
-
-    return import(url).then(function(module) {
-        node.compiled = {
-            start: module.__start || null,
-            update: module.__update || null,
-            end: module.__end || null,
-            onClone: module.__onClone || null,
-            onDestroy: module.__onDestroy || null
-        };
+    try {
+        const factory = new Function(
+            '"use strict";\\n' + node.code + '\\n' +
+            'return { start: typeof start === "function" ? start : null, update: typeof update === "function" ? update : null, end: typeof end === "function" ? end : null, onClone: typeof OnClone === "function" ? OnClone : null, onDestroy: typeof OnDestroy === "function" ? OnDestroy : null };'
+        );
+        node.compiled = factory();
         node.error = null;
-    }).catch(function(error) {
+    } catch (error) {
         node.compiled = null;
         node.error = error.message;
         console.error('Compiler error in ' + node.name + ': ' + error.message);
-    }).finally(function() {
-        URL.revokeObjectURL(url);
-    });
+    }
 }
 
 function compileAll() {
@@ -1495,10 +1482,9 @@ function compileAll() {
     hierarchy_nodes.forEach(function(node) {
         if (node.type === 'script') script_nodes.push(node);
     });
-    return Promise.all(script_nodes.map(compileScript)).then(function() {
-        return script_nodes.every(function(node) {
-            return !node.error;
-        });
+    script_nodes.forEach(compileScript);
+    return script_nodes.every(function(node) {
+        return !node.error;
     });
 }
 
@@ -1540,7 +1526,8 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 function drawGrid() {
-    const grid_size = 20;context.strokeStyle = '#2c2c33';
+    const grid_size = 20;
+    context.strokeStyle = '#2c2c33';
     context.lineWidth = 1 / viewport.scale;
     for (let x = 0; x < world_width; x += grid_size) {
         context.beginPath();
@@ -1658,7 +1645,7 @@ function restoreSnapshot(snap) {
             node.text = saved.text;
             node.font_size = saved.font_size;
             node.font_family = saved.font_family;
-            node.color = saved.color
+            node.color = saved.color;
             node.visible = saved.visible;
         }
     });
@@ -1704,26 +1691,25 @@ function tick(now) {
 
 function startRun() {
     if (runtime.running) return;
-    compileAll().then(function() {
-        stored_snapshot = takeSnapshot();
-        globals.clear();
-        active_timers.clear();
-        runtime.running = true;
-        runtime.last_time = performance.now();
-        runtime.keys_down.clear();
-        if (start_button_element) start_button_element.disabled = true;
-        if (stop_button_element) stop_button_element.disabled = false;
-        for (const node of hierarchy_nodes.values()) {
-            if (node.type !== 'script' || !node.compiled || !node.compiled.start) continue;
-            const owner = hierarchy_nodes.get(node.parent_id);
-            try {
-                node.compiled.start(owner, matuAPI);
-            } catch (error) {
-                reportScriptError(node, error);
-            }
+    compileAll();
+    stored_snapshot = takeSnapshot();
+    globals.clear();
+    active_timers.clear();
+    runtime.running = true;
+    runtime.last_time = performance.now();
+    runtime.keys_down.clear();
+    if (start_button_element) start_button_element.disabled = true;
+    if (stop_button_element) stop_button_element.disabled = false;
+    for (const node of hierarchy_nodes.values()) {
+        if (node.type !== 'script' || !node.compiled || !node.compiled.start) continue;
+        const owner = hierarchy_nodes.get(node.parent_id);
+        try {
+            node.compiled.start(owner, matuAPI);
+        } catch (error) {
+            reportScriptError(node, error);
         }
-        runtime.raf_id = requestAnimationFrame(tick);
-    });
+    }
+    runtime.raf_id = requestAnimationFrame(tick);
 }
 
 function stopRun() {
@@ -1815,7 +1801,7 @@ project_file_input.addEventListener('change', async () => {
     if (!file) return;
 
     try {
-        await loadProject(file);
+        await loadFromFile(file);
         logToConsole('Project loaded from file', 'info');
     } catch (error) {
         logToConsole(`Failed to load project file: ${error.message}`, 'error');
