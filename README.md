@@ -6,8 +6,8 @@ Matu is a lightweight game engine designed to build 2D web games. It is inspired
 ## Important: click [HERE](tutorial.md) for a tutorial!
 
 ## Features
-
- - Node system consisting of Groups, Objects, Sprites, Audio, and Scripts
+ 
+ - Node system consisting of Groups, Objects, Sprites, Audio, Labels, and Scripts
  - Scripting functionality
  - Asset uploading
  - Viewport testing
