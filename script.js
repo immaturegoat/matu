@@ -650,7 +650,7 @@ function registerAsset(file, forced_name=null) {
 
         const dot_index = current_name.lastIndexOf('.');
         const extension = current_name.substring(dot_index);
-        openInspector(current_name, ext);
+        openInspector(current_name, extension);
     });
 
     item.addEventListener('dblclick', () => {
@@ -784,7 +784,7 @@ async function loadFromBrowser() {
 
     try {
         const data = JSON.parse(raw);
-        await loadProject(data);
+        await loadFromFile(data);
         logToConsole('Project loaded from browser storage', 'warn');
     } catch (error) {
         logToConsole(`Failed to load from browser storage: ${error.message}`, 'error');
@@ -895,13 +895,13 @@ function buildExportCSS() {
 '#loading-screen {\n' +
 '    position: absolute;\n' +
 '    inset: 0;\n' +
-'    background: #000\n' +
+'    background: #000;\n' +
 '    display: flex;\n' +
 '    flex-direction: column;\n' +
 '    align-items: center;\n' +
 '    justify-content: center;\n' +
 '    color: #eef1f4;\n' +
-'    gap: 8px\n' +
+'    gap: 8px;\n' +
 '    transition: opacity 0.3s ease;\n' +
 '    z-index: 20;\n' +
 '}\n\n' +
@@ -921,8 +921,8 @@ function buildExportCSS() {
 '#matu-controls {\n' +
 '    position: absolute;\n' +
 '    top: 12px;\n' +
-'    left: 12px\n' +
-'    display; flex;\n' +
+'    left: 12px;\n' +
+'    display: flex;\n' +
 '    gap: 8px;\n' +
 '    z-index: 10;\n' +
 '}\n\n' +
@@ -950,7 +950,7 @@ function buildExportCSS() {
 '    color: #ff6b6b;\n' +
 '}\n\n' +
 '.matu-button.stop:hover:not(:disabled) {\n' +
-'    background #8f0e0e;\n' +
+'    background: #8f0e0e;\n' +
 '    color: #eef1f4;\n' +
 '}\n';
 }
@@ -1282,7 +1282,7 @@ const matuAPI = {
         },
         rotate: function(node, degrees_delta) {
             if (!node || node.type !== 'object') return;
-            node.transform.ortation += degrees_delta;
+            node.transform.rotation += degrees_delta;
         },
         setSize: function(node, width, height) {
             if (!node || node.type !== 'object') return;
@@ -1493,12 +1493,12 @@ function compileScript(node) {
 function compileAll() {
     const script_nodes = [];
     hierarchy_nodes.forEach(function(node) {
-        if (node.type === 'script') script+nodes.push(node);
+        if (node.type === 'script') script_nodes.push(node);
     });
     return Promise.all(script_nodes.map(compileScript)).then(function() {
-        return script_nodes.every(function(node {
+        return script_nodes.every(function(node) {
             return !node.error;
-        }));
+        });
     });
 }
 
@@ -1627,7 +1627,7 @@ function takeSnapshot() {
     for (const node of hierarchy_nodes.values()) {
         if (node.type === 'object') snap.set(node.id, {transform: Object.assign({}, node.transform)});
         else if (node.type === 'sprite') snap.set(node.id, {visible: node.visible, asset_name: node.asset_name, opacity: node.opacity});
-        else if (node.type === 'audio') snap.set(node.id, {volume: node.volume, loop: node.loop, asset_name, node.asset_name});
+        else if (node.type === 'audio') snap.set(node.id, {volume: node.volume, loop: node.loop, asset_name: node.asset_name});
         else if (node.type === 'label') snap.set(node.id, {text: node.text, font_size: node.font_size, font_family: node.font_family, color: node.color, visible: node.visible});
     }
 
@@ -1768,7 +1768,7 @@ function preloadImages() {
         return new Promise(function(resolve) {
             const img = new Image();
             img.onload = resolve;
-            image.onerror = resolve;
+            img.onerror = resolve;
             img.src = asset.data_url;
             asset_images.set(asset.name, img);
         });

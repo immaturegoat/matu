@@ -86,7 +86,7 @@ async function compileAll() {
     await Promise.all(script_nodes.map(node => compileScript(node)));
 
     let ok = true;
-    for (const node of script_ndoes) {
+    for (const node of script_nodes) {
         if (node.error) ok = false;
     }
     return ok;
